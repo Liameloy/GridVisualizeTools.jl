@@ -48,19 +48,18 @@ function tet_x_plane!(
     # Interpolate coordinates and function_values according to
     # evaluation of the plane equation
     intersection_counter = 0
-    prohibitedList = @MArray zeros(Bool, 4)
+    prohibited_list = @MArray zeros(Bool, 4)
     debug && @info node_indices
     @inbounds @simd for n1 in 1:3
         N1 = node_indices[n1]
         @inbounds @fastmath @simd for n2 in (n1 + 1):4
             N2 = node_indices[n2]
-            if planeq_values[n1] != planeq_values[n2] &&
-                    planeq_values[n1] * planeq_values[n2] < tol #&&
-                #abs(planeq_values[n2]) > tol
-                #=if abs(planeq_values[n1] - planeq_values[n2]) > tol && prohibitedList[n1] == false && prohibitedList[n2] == false
-                if planeq_values[n2] == 0
-                    prohibitedList[n2] = true
-                end=#
+
+            if planeq_values[n1] * planeq_values[n2] < tol && !prohibited_list[n1] && !prohibited_list[n2]
+
+                abs(planeq_values[n1]) < tol && (prohibited_list[n1] = true)
+                abs(planeq_values[n2]) < tol && (prohibited_list[n2] = true)
+
                 intersection_counter += 1
                 t = planeq_values[n1] / (planeq_values[n1] - planeq_values[n2])
                 ixcoord[1, intersection_counter] = pointlist[1, N1] + t * (pointlist[1, N2] - pointlist[1, N1])
