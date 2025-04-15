@@ -35,6 +35,9 @@ function tet_x_plane!(
         tol = 0.0
     )
 
+
+    debug = false
+
     # If all nodes lie on one side of the plane, no intersection
     @fastmath if (
             mapreduce(a -> a < -tol, *, planeq_values) ||
@@ -44,23 +47,32 @@ function tet_x_plane!(
     end
     # Interpolate coordinates and function_values according to
     # evaluation of the plane equation
-    nxs = 0
+    intersection_counter = 0
+    prohibitedList = @MArray zeros(Bool, 4)
+    debug && @info node_indices
     @inbounds @simd for n1 in 1:3
         N1 = node_indices[n1]
         @inbounds @fastmath @simd for n2 in (n1 + 1):4
             N2 = node_indices[n2]
             if planeq_values[n1] != planeq_values[n2] &&
-                    planeq_values[n1] * planeq_values[n2] < tol
-                nxs += 1
+                    planeq_values[n1] * planeq_values[n2] < tol #&&
+                #abs(planeq_values[n2]) > tol
+                #=if abs(planeq_values[n1] - planeq_values[n2]) > tol && prohibitedList[n1] == false && prohibitedList[n2] == false
+                if planeq_values[n2] == 0
+                    prohibitedList[n2] = true
+                end=#
+                intersection_counter += 1
                 t = planeq_values[n1] / (planeq_values[n1] - planeq_values[n2])
-                ixcoord[1, nxs] = pointlist[1, N1] + t * (pointlist[1, N2] - pointlist[1, N1])
-                ixcoord[2, nxs] = pointlist[2, N1] + t * (pointlist[2, N2] - pointlist[2, N1])
-                ixcoord[3, nxs] = pointlist[3, N1] + t * (pointlist[3, N2] - pointlist[3, N1])
-                ixvalues[nxs] = function_values[N1] + t * (function_values[N2] - function_values[N1])
+                ixcoord[1, intersection_counter] = pointlist[1, N1] + t * (pointlist[1, N2] - pointlist[1, N1])
+                ixcoord[2, intersection_counter] = pointlist[2, N1] + t * (pointlist[2, N2] - pointlist[2, N1])
+                ixcoord[3, intersection_counter] = pointlist[3, N1] + t * (pointlist[3, N2] - pointlist[3, N1])
+                ixvalues[intersection_counter] = function_values[N1] + t * (function_values[N2] - function_values[N1])
+                debug && @show ixcoord
             end
         end
     end
-    return nxs
+    debug && @info "amount of intersections: " intersection_counter
+    return intersection_counter
 end
 
 """
@@ -190,7 +202,7 @@ function marching_tetrahedra(
 
     function pushtris(ns, ixcoord, ixvalues)
         # number of intersection points can be 3 or 4
-        return if ns >= 3
+        if ns >= 3
             last_i = length(all_ixvalues)
             for is in 1:ns
                 @views push!(all_ixcoord, ixcoord[:, is])
@@ -201,6 +213,7 @@ function marching_tetrahedra(
                 push!(all_ixfaces, (last_i + 3, last_i + 2, last_i + 4))
             end
         end
+        return nothing
     end
 
     for igrid in 1:length(allcoords)
@@ -406,4 +419,29 @@ function marching_triangles(
         end
     end
     return points, adjacencies, values
+end
+
+
+"""
+Function to estimate amount of intersections of plane and tetrahedron
+This was used as a testing function and is not used otherwise
+"""
+
+function getAmountOfIntersections(planeq_values, tol)
+    prohibitedList = @MArray zeros(Bool, 4)
+    amountOfIntersections = 0
+    for i in 1:(length(planeq_values) - 1)
+        for j in (i + 1):length(planeq_values)
+            #=if planeq_values[n1] != planeq_values[n2] &&
+                planeq_values[n1] * planeq_values[n2] < tol && 
+                abs(planeq_values[n2]) > tol =#
+            if abs(planeq_values[i] - planeq_values[j]) > tol && prohibitedList[i] == false && prohibitedList[j] == false
+                amountOfIntersections += 1
+                if planeq_values[j] == 0
+                    prohibitedList[j] = true
+                end
+            end
+        end
+    end
+    return amountOfIntersections
 end
