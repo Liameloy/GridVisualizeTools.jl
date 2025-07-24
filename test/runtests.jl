@@ -8,7 +8,7 @@ doctest(GridVisualizeTools)
     @test GridVisualizeTools.calculate_plane_tetrahedron_intersection!(
         zeros(3,10),
         zeros(10),
-        zeros(UInt8,10),
+        zeros(Int32,6),
         [0.0 1.0 0.0 1.0 0.0 1.0 0.0 1.0; 0.0 0.0 1.0 1.0 0.0 0.0 1.0 1.0; 0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0],
         Int32[1, 2, 4, 8],
         [-1.0, 0.0, 1.0, 1.0],
@@ -19,7 +19,7 @@ doctest(GridVisualizeTools)
     @test GridVisualizeTools.calculate_plane_tetrahedron_intersection!(
         zeros(3,10),
         zeros(10),
-        zeros(UInt8,10),
+        zeros(Int32,6),
         [0.5 0.5 0.48305 0.55059; 0.7165 0.8 0.76944 0.76519; 0.12501 0.0 0.16147 0.16147],
         Int32[1, 2, 3, 4],
         [0.0, 0.0, -0.016950000077486038, 0.05059000104665756],
